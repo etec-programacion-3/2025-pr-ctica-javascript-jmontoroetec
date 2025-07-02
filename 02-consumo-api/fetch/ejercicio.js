@@ -7,39 +7,79 @@ const form = document.getElementById('product-form');
 
 // Obtiene y muestra la lista de productos desde la API (GET resuelto)
 async function fetchProducts() {
-  const res = await fetch(BASE_URL);
-  const products = await res.json();
-  list.innerHTML = '';
-  products.forEach(prod => {
-    const li = document.createElement('li');
-    li.textContent = `${prod.name} - $${prod.price}`;
-    // Llama a showDetails al hacer clic en el nombre del producto
-    li.onclick = () => showDetails(prod.id);
-    // Botón para eliminar (completar en el ejercicio)
-    const btn = document.createElement('button');
-    btn.textContent = 'Eliminar';
-    btn.onclick = e => {
-      e.stopPropagation();
-      // TODO: Llama a deleteProduct y luego fetchProducts
-    };
-    li.appendChild(btn);
-    list.appendChild(li);
-  });
+  try {
+    const res = await fetch(BASE_URL);
+    const products = await res.json();
+    list.innerHTML = '';
+    products.forEach(prod => {
+      const li = document.createElement('li');
+      li.textContent = `${prod.name} - $${prod.price}`;
+
+      // Llama a showDetails al hacer clic en el nombre del producto
+      li.onclick = () => showDetails(prod.id);
+
+      // Botón para eliminar
+      const btn = document.createElement('button');
+      btn.textContent = 'Eliminar';
+      btn.onclick = async e => {
+        e.stopPropagation(); // evita que se dispare el click del li
+        await deleteProduct(prod.id);
+        await fetchProducts();
+      };
+
+      li.appendChild(btn);
+      list.appendChild(li);
+    });
+  } catch (err) {
+    alert('Error al obtener productos');
+    console.error(err);
+  }
 }
 
-// EJERCICIO: Completa la función para crear un producto usando fetch POST
+// EJERCICIO 1: Crear producto usando fetch POST
 async function createProduct(name, price, description) {
-  // TODO: Implementa el POST a la API
+  try {
+    const res = await fetch(BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name, price, description })
+    });
+
+    if (!res.ok) throw new Error('Error al crear producto');
+  } catch (err) {
+    alert('Error al crear producto');
+    console.error(err);
+  }
 }
 
-// EJERCICIO: Completa la función para eliminar un producto usando fetch DELETE
+// EJERCICIO 2: Eliminar producto usando fetch DELETE
 async function deleteProduct(id) {
-  // TODO: Implementa el DELETE a la API
+  try {
+    const res = await fetch(`${BASE_URL}/${id}`, {
+      method: 'DELETE'
+    });
+
+    if (!res.ok) throw new Error('Error al eliminar producto');
+  } catch (err) {
+    alert('Error al eliminar producto');
+    console.error(err);
+  }
 }
 
-// EJERCICIO: Completa la función para mostrar detalles usando fetch GET /products/:id
+// EJERCICIO 3: Mostrar detalles usando fetch GET /products/:id
 async function showDetails(id) {
-  // TODO: Implementa el GET de detalles y muestra un alert con la info
+  try {
+    const res = await fetch(`${BASE_URL}/${id}`);
+    if (!res.ok) throw new Error('No se pudo obtener el producto');
+
+    const product = await res.json();
+    alert(`Nombre: ${product.name}\nPrecio: $${product.price}\nDescripción: ${product.description}`);
+  } catch (err) {
+    alert('Error al obtener detalles del producto');
+    console.error(err);
+  }
 }
 
 // Maneja el submit del formulario para crear un producto
@@ -48,9 +88,11 @@ form.onsubmit = async e => {
   const name = document.getElementById('name').value;
   const price = document.getElementById('price').value;
   const description = document.getElementById('description').value;
-  // TODO: Llama a createProduct y luego fetchProducts
+
+  await createProduct(name, price, description);
+  await fetchProducts();
   form.reset();
 };
 
 // Render inicial
-fetchProducts(); 
+fetchProducts();
