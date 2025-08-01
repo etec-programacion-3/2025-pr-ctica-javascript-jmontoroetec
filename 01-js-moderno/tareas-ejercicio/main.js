@@ -1,38 +1,77 @@
-// Importa las funciones del módulo de tareas
-import { getTasks, addTask, removeTask } from './tareas.js';
+import {
+  getTasks,
+  addTask,
+  removeTask,
+  editTask,
+  toggleTaskCompletion
+} from './tareas.js';
 
-// Referencias a los elementos del DOM
 const form = document.getElementById('task-form');
 const input = document.getElementById('task-input');
 const list = document.getElementById('task-list');
+const filterSelect = document.getElementById('filter-tasks'); 
 
-// Renderiza la lista de tareas en el DOM
+let currentFilter = 'all'; 
+
 function renderTasks() {
   list.innerHTML = '';
-  getTasks().forEach((task, idx) => {
+  const tasks = getTasks();
+
+  const filteredTasks = tasks.filter(({ completed }) => {
+    if (currentFilter === 'completed') return completed;
+    if (currentFilter === 'pending') return !completed;
+    return true;
+  });
+
+  filteredTasks.forEach(({ text, completed }, idx) => {
     const li = document.createElement('li');
-    li.textContent = task;
-    // TODO: Agrega aquí el botón y la lógica para editar la tarea
-    // TODO: Agrega aquí la lógica para filtrar tareas completadas/pendientes
-    // Botón para eliminar la tarea
-    const btn = document.createElement('button');
-    btn.textContent = 'Eliminar';
-    btn.onclick = () => {
-      removeTask(idx);
+    li.textContent = text;
+    if (completed) li.style.textDecoration = 'line-through';
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = completed ? 'Desmarcar' : 'Completar';
+    toggleBtn.onclick = () => {
+      const fullIndex = tasks.indexOf(filteredTasks[idx]);
+      toggleTaskCompletion(fullIndex);
       renderTasks();
     };
-    li.appendChild(btn);
+
+    const editBtn = document.createElement('button');
+    editBtn.textContent = 'Editar';
+    editBtn.onclick = () => {
+      const newText = prompt('Editar tarea:', text);
+      if (newText) {
+        const fullIndex = tasks.indexOf(filteredTasks[idx]);
+        editTask(fullIndex, newText);
+        renderTasks();
+      }
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Eliminar';
+    deleteBtn.onclick = () => {
+      const fullIndex = tasks.indexOf(filteredTasks[idx]);
+      removeTask(fullIndex);
+      renderTasks();
+    };
+
+    li.append(toggleBtn, editBtn, deleteBtn);
     list.appendChild(li);
   });
 }
 
-// Maneja el evento submit del formulario para agregar una tarea
 form.onsubmit = e => {
   e.preventDefault();
-  addTask(input.value);
-  input.value = '';
+  if (input.value.trim()) {
+    addTask(input.value.trim());
+    input.value = '';
+    renderTasks();
+  }
+};
+
+filterSelect.onchange = e => {
+  currentFilter = e.target.value;
   renderTasks();
 };
 
-// Render inicial de las tareas
-renderTasks(); 
+renderTasks();
